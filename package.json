@@ -1,0 +1,24 @@
+{
+  "name": "control-gastos-backend",
+  "version": "0.1.0",
+  "description": "Backend Node.js + TypeScript sobre AWS para control de gastos hormiga (Yape/Plin/efectivo).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "sam build",
+    "deploy": "sam deploy",
+    "deploy:guided": "sam deploy --guided",
+    "logs": "sam logs --stack-name control-gastos-backend --tail"
+  },
+  "dependencies": {
+    "esbuild": "^0.20.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.137",
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  }
+}

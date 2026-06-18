@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# TypeScript / SAM build
+dist/
+.aws-sam/
+
+# Entorno / credenciales (NUNCA subir esto)
+.env
+.env.*
+aws.json
+*.pem
+
+# OS / editores
+.DS_Store
+.idea/
+.vscode/

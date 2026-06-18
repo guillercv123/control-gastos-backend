@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Control de Gastos - Backend Node.js + TypeScript (Fase 0 - health check)"
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 10
+    MemorySize: 128
+    Architectures:
+      - arm64           # Graviton: mas barato y rapido
+    Environment:
+      Variables:
+        SERVICE_NAME: control-gastos-backend
+        STAGE: dev
+
+Resources:
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-health
+      CodeUri: .
+      Handler: getHealth.handler
+      Events:
+        GetHealth:
+          Type: HttpApi
+          Properties:
+            Path: /health
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/health/getHealth.ts
+
+Outputs:
+  HealthUrl:
+    Description: Endpoint de prueba para validar la Fase 0
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/health"
