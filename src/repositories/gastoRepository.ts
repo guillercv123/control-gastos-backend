@@ -10,7 +10,7 @@ import { itemKey, type GastoItem } from '../domain/gasto';
 const TABLE = config.tableName;
 
 export interface ListarFiltros {
-  mes?: string; // YYYY-MM
+  mes?: string;
   categoria?: string;
   metodoPago?: string;
 }
@@ -31,7 +31,6 @@ export const gastoRepository = {
     userId: string,
     filtros: ListarFiltros = {},
   ): Promise<GastoItem[]> {
-    // Con mes -> usamos el GSI1 (eficiente). Sin mes -> todos los gastos del usuario.
     if (filtros.mes) {
       const res = await ddb.send(
         new QueryCommand({
@@ -41,7 +40,7 @@ export const gastoRepository = {
           ExpressionAttributeValues: {
             ':pk': `USER#${userId}#${filtros.mes}`,
           },
-          ScanIndexForward: false, // mas recientes primero
+          ScanIndexForward: false,
         }),
       );
       return applyFilters((res.Items as GastoItem[]) ?? [], filtros);
@@ -62,7 +61,6 @@ export const gastoRepository = {
   },
 };
 
-// Filtros en memoria por categoria/metodo (los datos por usuario/mes son pocos).
 const applyFilters = (
   items: GastoItem[],
   filtros: ListarFiltros,
