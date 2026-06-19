@@ -9,7 +9,7 @@ export class ValidationError extends Error {}
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Valida y normaliza el cuerpo recibido para crear un gasto.
+
 export const parseCrearGasto = (body: unknown): CrearGastoInput => {
   if (typeof body !== 'object' || body === null) {
     throw new ValidationError('El cuerpo debe ser un objeto JSON');
@@ -131,7 +131,6 @@ export const parseActualizarGasto = (
 
   return result;
 };
-
 
 export const parseCrearRegla = (body: unknown): CrearReglaInput => {
   if (typeof body !== 'object' || body === null) throw new ValidationError('El cuerpo debe ser un objeto JSON');
