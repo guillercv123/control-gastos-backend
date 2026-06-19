@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { ddb } from '../lib/dynamo';
 import { config } from '../config/env';
-import {itemKey, type GastoItem, Gasto, UMBRAL_HORMIGA} from '../domain/gasto';
+import {itemKey, type GastoItem, Gasto, UMBRAL_HORMIGA, buildKeys} from '../domain/gasto';
 
 const TABLE = config.tableName;
 
@@ -51,21 +51,23 @@ export const gastoRepository = {
             return null;
         }
 
-        const updatedItem: GastoItem = {
-            ...gasto,
-            ...data,
-            esHormiga: (data.monto ?? gasto.monto) < UMBRAL_HORMIGA,
-            updatedAt: new Date().toISOString(),
-        };
+      const fusionado = {
+          ...gasto,
+          ...data,
+          esHormiga: (data.monto ?? gasto.monto) < UMBRAL_HORMIGA,
+          updatedAt: new Date().toISOString(),
+      };
 
-        await ddb.send(
-            new PutCommand({
-                TableName: TABLE,
-                Item: updatedItem,
-            }),
-        );
+      const updatedItem: GastoItem = {
+          ...fusionado,
+          ...buildKeys(userId, id, fusionado.fecha),
+      };
 
-        return updatedItem;
+      await ddb.send(
+          new PutCommand({ TableName: TABLE, Item: updatedItem }),
+      );
+
+      return updatedItem;
     },
   async listar(
     userId: string,

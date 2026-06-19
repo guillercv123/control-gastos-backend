@@ -6,7 +6,7 @@ import {
   nuevoGastoItem,
   toGasto,
   type CrearGastoInput,
-  type Gasto, type GastoItem,
+  type Gasto
 } from '../domain/gasto';
 
 export const gastoService = {
@@ -37,8 +37,9 @@ export const gastoService = {
       userId: string,
       id: string,
       data: Partial<Gasto>,
-  ): Promise<GastoItem | null> {
-    return await gastoRepository.update(userId, id, data);
+  ): Promise<Gasto | null> {
+    const item = await gastoRepository.update(userId, id, data);
+    return item ? toGasto(item) : null;
   },
 
 };
