@@ -1,6 +1,6 @@
 {
   "name": "control-gastos-backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Backend Node.js + TypeScript sobre AWS para control de gastos hormiga (Yape/Plin/efectivo).",
   "license": "MIT",
   "engines": {
@@ -14,7 +14,10 @@
     "logs": "sam logs --stack-name control-gastos-backend --tail"
   },
   "dependencies": {
-    "esbuild": "^0.20.2"
+    "@aws-sdk/client-dynamodb": "^3.620.0",
+    "@aws-sdk/lib-dynamodb": "^3.620.0",
+    "esbuild": "^0.20.2",
+    "ulid": "^2.3.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.137",

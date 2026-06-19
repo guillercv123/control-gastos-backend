@@ -66,6 +66,8 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
+        External:
+          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/health/getHealth.ts
 
@@ -90,6 +92,8 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
+        External:
+          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/createGasto.ts
 
@@ -114,6 +118,8 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
+        External:
+          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/listGastos.ts
 
@@ -138,6 +144,8 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
+        External:
+          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/getGasto.ts
 
