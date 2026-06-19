@@ -362,6 +362,9 @@ Outputs:
   GastosUrl:
     Description: Endpoint de gastos (requiere token)
     Value: !Sub "https://${GastosHttpApi}.execute-api.${AWS::Region}.amazonaws.com/gastos"
+  ReglasUrl:
+      Description: Endpoint de gastos (requiere token)
+      Value: !Sub "https://${GastosHttpApi}.execute-api.${AWS::Region}.amazonaws.com/reglas"
   UserPoolId:
     Description: ID del User Pool de Cognito
     Value: !Ref UserPool
