@@ -23,6 +23,15 @@ export interface CrearGastoInput {
   descripcion?: string;
 }
 
+export interface ActualizarGastoInput {
+  monto?: number;
+  categoria?: string;
+  metodoPago?: MetodoPago;
+  fecha?: string;
+  comercio?: string | null;
+  descripcion?: string | null;
+}
+
 export interface Gasto {
   id: string;
   userId: string;

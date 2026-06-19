@@ -189,6 +189,67 @@ Resources:
         EntryPoints:
           - src/handlers/gastos/getGasto.ts
 
+  EliminarGastoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-eliminar-gasto
+      CodeUri: .
+      Handler: deleteGasto.handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+              Resource: !GetAtt GastosTable.Arn
+      Events:
+        DeleteGasto:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /gastos/{id}
+            Method: DELETE
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/gastos/deleteGasto.ts
+
+  ActualizarGastoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-actualizar-gasto
+      CodeUri: .
+      Handler: updateGasto.handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt GastosTable.Arn
+      Events:
+        PatchGasto:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /gastos/{id}
+            Method: PATCH
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/gastos/updateGasto.ts
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API

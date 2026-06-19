@@ -6,7 +6,7 @@ import {
   nuevoGastoItem,
   toGasto,
   type CrearGastoInput,
-  type Gasto,
+  type Gasto, type GastoItem,
 } from '../domain/gasto';
 
 export const gastoService = {
@@ -25,4 +25,20 @@ export const gastoService = {
     const items = await gastoRepository.listar(userId, filtros);
     return items.map(toGasto);
   },
+
+  async eliminar(
+      userId:string,
+      id: string
+  ): Promise<boolean>{
+    return await gastoRepository.delete(userId, id);
+  },
+
+  async actualizar(
+      userId: string,
+      id: string,
+      data: Partial<Gasto>,
+  ): Promise<GastoItem | null> {
+    return await gastoRepository.update(userId, id, data);
+  },
+
 };

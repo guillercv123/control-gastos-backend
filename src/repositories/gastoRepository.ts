@@ -1,11 +1,12 @@
 import {
-  GetCommand,
-  PutCommand,
-  QueryCommand,
+    DeleteCommand,
+    GetCommand,
+    PutCommand,
+    QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ddb } from '../lib/dynamo';
 import { config } from '../config/env';
-import { itemKey, type GastoItem } from '../domain/gasto';
+import {itemKey, type GastoItem, Gasto, UMBRAL_HORMIGA} from '../domain/gasto';
 
 const TABLE = config.tableName;
 
@@ -27,6 +28,45 @@ export const gastoRepository = {
     return (res.Item as GastoItem) ?? null;
   },
 
+  async delete(userId: string, id: string): Promise<boolean> {
+        const res = await ddb.send(
+            new DeleteCommand({
+                TableName: TABLE,
+                Key: itemKey(userId, id),
+                ReturnValues: 'ALL_OLD',
+            }),
+        );
+
+        return !!res.Attributes;
+    },
+
+  async update(
+        userId: string,
+        id: string,
+        data: Partial<Gasto>,
+  ): Promise<GastoItem | null> {
+        const gasto = await this.get(userId, id);
+
+        if (!gasto) {
+            return null;
+        }
+
+        const updatedItem: GastoItem = {
+            ...gasto,
+            ...data,
+            esHormiga: (data.monto ?? gasto.monto) < UMBRAL_HORMIGA,
+            updatedAt: new Date().toISOString(),
+        };
+
+        await ddb.send(
+            new PutCommand({
+                TableName: TABLE,
+                Item: updatedItem,
+            }),
+        );
+
+        return updatedItem;
+    },
   async listar(
     userId: string,
     filtros: ListarFiltros = {},

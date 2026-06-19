@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "sam build",
     "deploy": "sam deploy",
+    "debugger": "sam local start-api -d 5858",
     "deploy:guided": "sam deploy --guided",
     "logs": "sam logs --stack-name control-gastos-backend --tail"
   },
