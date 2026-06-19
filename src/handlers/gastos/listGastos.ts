@@ -1,5 +1,5 @@
 import type {
-  APIGatewayProxyEventV2,
+  APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda';
 import { ok, serverError } from '../../lib/httpResponse';
@@ -8,7 +8,7 @@ import { getUserId } from '../../lib/identity';
 import { gastoService } from '../../services/gastoService';
 
 export const handler = async (
-  event: APIGatewayProxyEventV2,
+  event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
     const userId = getUserId(event);

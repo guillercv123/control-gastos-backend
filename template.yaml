@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: "Control de Gastos - Backend Node.js + TypeScript (Fase 1 - gastos)"
+Description: "Control de Gastos - Backend Node.js + TypeScript (Fase 2 - Cognito)"
 
 Globals:
   Function:
@@ -8,21 +8,63 @@ Globals:
     Timeout: 10
     MemorySize: 128
     Architectures:
-      - arm64                       # Graviton: mas barato y rapido
+      - arm64
     Environment:
       Variables:
         SERVICE_NAME: control-gastos-backend
         STAGE: dev
-        TABLE_NAME: !Ref GastosTable   # nombre real de la tabla, inyectado a cada Lambda
+        TABLE_NAME: !Ref GastosTable
 
 Resources:
+
+  # ===================== Autenticacion (Cognito) =====================
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: control-gastos-users
+      UsernameAttributes:           # el usuario inicia sesion con su email
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: control-gastos-web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false         # app publica (SPA): sin secreto
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH  # login usuario+contrasena (y pruebas por CLI)
+        - ALLOW_USER_SRP_AUTH       # login seguro (lo usara Angular)
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # ===================== API con autorizador JWT =====================
+  GastosHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+              audience:
+                - !Ref UserPoolClient
+        DefaultAuthorizer: CognitoAuthorizer   # todo protegido por defecto
 
   # ===================== Base de datos =====================
   GastosTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: control-gastos
-      BillingMode: PAY_PER_REQUEST    # On-Demand: $0 cuando nadie lo usa
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -34,16 +76,16 @@ Resources:
           AttributeType: S
       KeySchema:
         - AttributeName: PK
-          KeyType: HASH               # USER#<userId>
+          KeyType: HASH
         - AttributeName: SK
-          KeyType: RANGE              # GASTO#<ulid>
+          KeyType: RANGE
       GlobalSecondaryIndexes:
-        - IndexName: GSI1             # consultas por mes
+        - IndexName: GSI1
           KeySchema:
             - AttributeName: GSI1PK
-              KeyType: HASH           # USER#<userId>#<YYYY-MM>
+              KeyType: HASH
             - AttributeName: GSI1SK
-              KeyType: RANGE          # <fecha>#<ulid>
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
 
@@ -58,16 +100,17 @@ Resources:
         GetHealth:
           Type: HttpApi
           Properties:
+            ApiId: !Ref GastosHttpApi
             Path: /health
             Method: GET
+            Auth:
+              Authorizer: NONE        # /health queda PUBLICO
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         Minify: false
         Sourcemap: true
         Target: es2022
-        External:
-          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/health/getHealth.ts
 
@@ -78,12 +121,13 @@ Resources:
       CodeUri: .
       Handler: createGasto.handler
       Policies:
-        - DynamoDBWritePolicy:        # permiso minimo: solo escritura
+        - DynamoDBWritePolicy:
             TableName: !Ref GastosTable
       Events:
         PostGasto:
           Type: HttpApi
           Properties:
+            ApiId: !Ref GastosHttpApi      # protegido (autorizador por defecto)
             Path: /gastos
             Method: POST
     Metadata:
@@ -92,8 +136,6 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
-        External:
-          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/createGasto.ts
 
@@ -104,12 +146,13 @@ Resources:
       CodeUri: .
       Handler: listGastos.handler
       Policies:
-        - DynamoDBReadPolicy:         # permiso minimo: solo lectura (incluye indices)
+        - DynamoDBReadPolicy:
             TableName: !Ref GastosTable
       Events:
         GetGastos:
           Type: HttpApi
           Properties:
+            ApiId: !Ref GastosHttpApi
             Path: /gastos
             Method: GET
     Metadata:
@@ -118,8 +161,6 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
-        External:
-          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/listGastos.ts
 
@@ -136,6 +177,7 @@ Resources:
         GetGasto:
           Type: HttpApi
           Properties:
+            ApiId: !Ref GastosHttpApi
             Path: /gastos/{id}
             Method: GET
     Metadata:
@@ -144,21 +186,22 @@ Resources:
         Minify: false
         Sourcemap: true
         Target: es2022
-        External:
-          - "@aws-sdk/*"   # provisto por el runtime; no se empaqueta
         EntryPoints:
           - src/handlers/gastos/getGasto.ts
 
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Value: !Sub "https://${GastosHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
   HealthUrl:
-    Description: Endpoint de salud
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/health"
+    Description: Endpoint de salud (publico)
+    Value: !Sub "https://${GastosHttpApi}.execute-api.${AWS::Region}.amazonaws.com/health"
   GastosUrl:
-    Description: Endpoint de gastos
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/gastos"
-  TableName:
-    Description: Nombre de la tabla DynamoDB
-    Value: !Ref GastosTable
+    Description: Endpoint de gastos (requiere token)
+    Value: !Sub "https://${GastosHttpApi}.execute-api.${AWS::Region}.amazonaws.com/gastos"
+  UserPoolId:
+    Description: ID del User Pool de Cognito
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: ID del App Client (para login y obtener token)
+    Value: !Ref UserPoolClient
