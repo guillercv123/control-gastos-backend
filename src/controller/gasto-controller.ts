@@ -46,8 +46,10 @@ export class GastoController {
             const userId = getUserId(event);
             const id = event.pathParameters?.id;
             if (!id) return badRequest('Falta el id del gasto');
-            const res = await gastoService.eliminar(userId, id);
-            return res ? ok(res) : notFound('Gasto no se pudo eliminar');
+            const eliminado = await gastoService.eliminar(userId, id);
+            return eliminado
+                ? ok({ id, eliminado: true })
+                : notFound('Gasto no encontrada');
         }catch (err) {
             logger.error('error al eliminar gasto', { error: String(err) });
             return serverError();
