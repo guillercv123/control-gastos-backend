@@ -3,6 +3,7 @@ import {
   type CrearGastoInput,
   type MetodoPago, ActualizarGastoInput,
 } from '../domain/gasto';
+import {CrearReglaInput} from "../domain/regla";
 
 export class ValidationError extends Error {}
 
@@ -129,4 +130,24 @@ export const parseActualizarGasto = (
   }
 
   return result;
+};
+
+
+export const parseCrearRegla = (body: unknown): CrearReglaInput => {
+  if (typeof body !== 'object' || body === null) throw new ValidationError('El cuerpo debe ser un objeto JSON');
+  const b = body as Record<string, unknown>;
+  if (typeof b.keyword !== 'string' || b.keyword.trim() === '') throw new ValidationError('keyword es obligatoria');
+  if (typeof b.categoria !== 'string' || b.categoria.trim() === '') throw new ValidationError('categoria es obligatoria');
+  return { keyword: b.keyword, categoria: b.categoria };
+};
+
+export const parseSugerir = (body: unknown): { comercio?: string; descripcion?: string } => {
+  if (typeof body !== 'object' || body === null) throw new ValidationError('El cuerpo debe ser un objeto JSON');
+  const b = body as Record<string, unknown>;
+  if (b.comercio !== undefined && typeof b.comercio !== 'string') throw new ValidationError('comercio debe ser texto');
+  if (b.descripcion !== undefined && typeof b.descripcion !== 'string') throw new ValidationError('descripcion debe ser texto');
+  const comercio = b.comercio as string | undefined;
+  const descripcion = b.descripcion as string | undefined;
+  if (!comercio?.trim() && !descripcion?.trim()) throw new ValidationError('Debes enviar comercio o descripcion');
+  return { comercio, descripcion };
 };

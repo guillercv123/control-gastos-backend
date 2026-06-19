@@ -209,7 +209,6 @@ Resources:
             ApiId: !Ref GastosHttpApi
             Path: /gastos/{id}
             Method: DELETE
-
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -240,7 +239,6 @@ Resources:
             ApiId: !Ref GastosHttpApi
             Path: /gastos/{id}
             Method: PATCH
-
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -249,6 +247,110 @@ Resources:
         Target: es2022
         EntryPoints:
           - src/handlers/gastos/updateGasto.ts
+
+  CrearReglaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-crear-regla
+      CodeUri: .
+      Handler: createRegla.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GastosTable
+      Events:
+        PostRegla:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /reglas
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/reglas/createRegla.ts
+
+  ListarReglasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-listar-reglas
+      CodeUri: .
+      Handler: listReglas.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GastosTable
+      Events:
+        GetReglas:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /reglas
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/reglas/listReglas.ts
+
+  EliminarReglaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-eliminar-regla
+      CodeUri: .
+      Handler: deleteRegla.handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+              Resource: !GetAtt GastosTable.Arn
+      Events:
+        DeleteRegla:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /reglas/{id}
+            Method: DELETE
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/reglas/deleteRegla.ts
+
+  SugerirFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-sugerir-categoria
+      CodeUri: .
+      Handler: sugerir.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GastosTable
+      Events:
+        PostSugerir:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /reglas/sugerir
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/reglas/sugerir.ts
 
 Outputs:
   ApiBaseUrl:
