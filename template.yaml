@@ -352,6 +352,31 @@ Resources:
         EntryPoints:
           - src/handlers/reglas/sugerir.ts
 
+  ResumenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-resumen
+      CodeUri: .
+      Handler: getResumen.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GastosTable
+      Events:
+        GetResumen:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /resumen
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/resumen/getResumen.ts
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API
