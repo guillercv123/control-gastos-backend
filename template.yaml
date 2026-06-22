@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: "Control de Gastos - Backend Node.js + TypeScript (Fase 2 - Cognito)"
+Description: "Control de Gastos - Backend Node.js + TypeScript"
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: guillercv123@gmail.com
 
 Globals:
   Function:
@@ -65,6 +69,8 @@ Resources:
     Properties:
       TableName: control-gastos
       BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -88,6 +94,18 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: control-gastos-alertas
+
+  AlertSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+      TopicArn: !Ref AlertTopic
 
   # ===================== Lambdas =====================
   HealthFunction:
@@ -376,6 +394,37 @@ Resources:
         Target: es2022
         EntryPoints:
           - src/handlers/resumen/getResumen.ts
+
+  ProcesarGastosStreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-procesar-stream
+      CodeUri: .
+      Handler: procesarGastos.handler
+      Environment:
+        Variables:
+          ALERT_TOPIC_ARN: !Ref AlertTopic
+          UMBRAL_ALERTA_MENSUAL: '100'
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GastosTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt GastosTable.StreamArn
+            StartingPosition: LATEST
+            BatchSize: 10
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/stream/procesarGastos.ts
 
 Outputs:
   ApiBaseUrl:
