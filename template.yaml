@@ -4,7 +4,8 @@ Description: "Control de Gastos - Backend Node.js + TypeScript"
 Parameters:
   AlertEmail:
     Type: String
-    Description: guillercv123@gmail.com
+    Default: guillercv123@gmail.com
+    Description: Correo para recibir alertas
 
 Globals:
   Function:
