@@ -1,4 +1,5 @@
 import {
+    BatchWriteCommand,
     DeleteCommand,
     GetCommand,
     PutCommand,
@@ -119,6 +120,15 @@ export class GastoRepository {
             items.push(...((res.Items as GastoItem[]) ?? []));
         }
         return items;
+    }
+
+    async putLote(items: GastoItem[]): Promise<void> {
+        for (let i = 0; i < items.length; i += 25) {
+            const lote = items.slice(i, i + 25);
+            await this.dynamo.send(new BatchWriteCommand({
+                RequestItems: { [this.table]: lote.map((Item) => ({ PutRequest: { Item } })) },
+            }));
+        }
     }
 }
 

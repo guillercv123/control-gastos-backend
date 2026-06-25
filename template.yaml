@@ -456,6 +456,83 @@ Resources:
         Target: es2022
         EntryPoints:
           - src/handlers/scheduled/reporteMensual.ts
+
+  ImportDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: control-gastos-import-dlq
+      MessageRetentionPeriod: 1209600
+
+
+  ImportQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: control-gastos-import
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ImportDLQ.Arn
+        maxReceiveCount: 3
+
+
+  ImportQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ImportQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowS3SendMessage
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt ImportQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub 'arn:aws:s3:::control-gastos-imports-${AWS::AccountId}'
+
+  ImportBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: ImportQueuePolicy
+    Properties:
+      BucketName: !Sub 'control-gastos-imports-${AWS::AccountId}'
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Queue: !GetAtt ImportQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.csv'
+
+  ImportarGastosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-importar
+      CodeUri: .
+      Handler: importarGastos.handler
+      Timeout: 30
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GastosTable
+        - S3ReadPolicy:
+            BucketName: !Sub 'control-gastos-imports-${AWS::AccountId}'
+      Events:
+        Cola:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ImportQueue.Arn
+            BatchSize: 1
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/sqs/importarGastos.ts
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API
@@ -475,6 +552,9 @@ Outputs:
   UserPoolId:
     Description: ID del User Pool de Cognito
     Value: !Ref UserPool
+  ImportBucketName:
+    Description: Bucket donde subir los CSV (imports/<userId>/archivo.csv)
+    Value: !Sub 'control-gastos-imports-${AWS::AccountId}'
   UserPoolClientId:
     Description: ID del App Client (para login y obtener token)
     Value: !Ref UserPoolClient
