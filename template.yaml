@@ -427,6 +427,35 @@ Resources:
         EntryPoints:
           - src/handlers/stream/procesarGastos.ts
 
+  ReporteMensualFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-reporte-mensual
+      CodeUri: .
+      Handler: reporteMensual.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          ALERT_TOPIC_ARN: !Ref AlertTopic
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GastosTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+      Events:
+        Mensual:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: 'cron(0 8 1 * ? *)'
+            ScheduleExpressionTimezone: America/Lima
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/scheduled/reporteMensual.ts
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API

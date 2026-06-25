@@ -2,7 +2,7 @@ import {
     DeleteCommand,
     GetCommand,
     PutCommand,
-    QueryCommand,
+    QueryCommand, ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ddb } from '../lib/dynamo';
 import { config } from '../config/env';
@@ -99,6 +99,26 @@ export class GastoRepository {
                 (!filtros.categoria || g.categoria === filtros.categoria) &&
                 (!filtros.metodoPago || g.metodoPago === filtros.metodoPago),
         );
+    }
+
+    async escanearGastos(): Promise<GastoItem[]> {
+        const items: GastoItem[] = [];
+        let res = await this.dynamo.send(new ScanCommand({
+            TableName: this.table,
+            FilterExpression: 'begins_with(SK, :sk)',
+            ExpressionAttributeValues: { ':sk': 'GASTO#' },
+        }));
+        items.push(...((res.Items as GastoItem[]) ?? []));
+        while (res.LastEvaluatedKey) {
+            res = await this.dynamo.send(new ScanCommand({
+                TableName: this.table,
+                FilterExpression: 'begins_with(SK, :sk)',
+                ExpressionAttributeValues: { ':sk': 'GASTO#' },
+                ExclusiveStartKey: res.LastEvaluatedKey,
+            }));
+            items.push(...((res.Items as GastoItem[]) ?? []));
+        }
+        return items;
     }
 }
 
