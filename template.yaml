@@ -54,6 +54,18 @@ Resources:
   GastosHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - http://localhost:4200
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
       Auth:
         Authorizers:
           CognitoAuthorizer:

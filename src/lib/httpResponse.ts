@@ -1,8 +1,7 @@
 import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 
 const baseHeaders: Record<string, string> = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*', // afinar al dominio real en produccion
+  'Content-Type': 'application/json'
 };
 
 export function response(
