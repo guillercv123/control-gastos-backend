@@ -22,7 +22,6 @@ Globals:
 
 Resources:
 
-  # ===================== Autenticacion (Cognito) =====================
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -50,7 +49,6 @@ Resources:
         - ALLOW_USER_SRP_AUTH       # login seguro (lo usara Angular)
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # ===================== API con autorizador JWT =====================
   GastosHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -74,7 +72,7 @@ Resources:
               issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
               audience:
                 - !Ref UserPoolClient
-        DefaultAuthorizer: CognitoAuthorizer   # todo protegido por defecto
+        DefaultAuthorizer: CognitoAuthorizer
 
   # ===================== Base de datos =====================
   GastosTable:
@@ -120,7 +118,6 @@ Resources:
       Endpoint: !Ref AlertEmail
       TopicArn: !Ref AlertTopic
 
-  # ===================== Lambdas =====================
   HealthFunction:
     Type: AWS::Serverless::Function
     Properties:
