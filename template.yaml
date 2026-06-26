@@ -118,30 +118,6 @@ Resources:
       Endpoint: !Ref AlertEmail
       TopicArn: !Ref AlertTopic
 
-  HealthFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: control-gastos-health
-      CodeUri: .
-      Handler: getHealth.handler
-      Events:
-        GetHealth:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref GastosHttpApi
-            Path: /health
-            Method: GET
-            Auth:
-              Authorizer: NONE        # /health queda PUBLICO
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: false
-        Sourcemap: true
-        Target: es2022
-        EntryPoints:
-          - src/handlers/health/getHealth.ts
-
   CrearGastoFunction:
     Type: AWS::Serverless::Function
     Properties:
