@@ -23,6 +23,7 @@ provider:
     cors:
       allowedOrigins:
         - http://localhost:4200
+        - https://d1xj6rmeboexff.cloudfront.net
       allowedHeaders:
         - Content-Type
         - Authorization
@@ -430,6 +431,7 @@ resources:
             - AllowedMethods: [PUT]
               AllowedOrigins:
                 - http://localhost:4200
+                - https://d1xj6rmeboexff.cloudfront.net
               AllowedHeaders: ['*']
               ExposedHeaders: [ETag]
               MaxAge: 3000
