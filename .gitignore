@@ -16,3 +16,5 @@ aws.json
 .DS_Store
 .idea/
 .vscode/
+.serverless/
+.esbuild/

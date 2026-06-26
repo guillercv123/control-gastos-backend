@@ -1,0 +1,459 @@
+service: control-gastos-backend
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-esbuild
+  - serverless-iam-roles-per-function
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  architecture: arm64
+  region: us-east-1
+  stage: dev
+  memorySize: 128
+  timeout: 10
+  environment:
+    SERVICE_NAME: control-gastos-backend
+    STAGE: dev
+    TABLE_NAME:
+      Ref: GastosTable
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:4200
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PATCH
+        - DELETE
+        - OPTIONS
+    authorizers:
+      cognitoJwt:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl:
+          Fn::Join:
+            - ''
+            - - 'https://cognito-idp.'
+              - Ref: AWS::Region
+              - '.amazonaws.com/'
+              - Ref: UserPool
+        audience:
+          - Ref: UserPoolClient
+
+custom:
+  alertEmail: ${param:alertEmail, 'guillercv123@gmail.com'}
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    target: node22
+    platform: node
+    concurrency: 10
+    external:
+      - '@aws-sdk/*'
+
+  # --- Anclas reutilizables de permisos DynamoDB (equivalen a DynamoDB(Read|Write)Policy de SAM) ---
+  iamDynamoRead: &iamDynamoRead
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:BatchGetItem
+      - dynamodb:ConditionCheckItem
+      - dynamodb:DescribeTable
+    Resource:
+      - Fn::GetAtt: [GastosTable, Arn]
+      - Fn::Join:
+          - ''
+          - - Fn::GetAtt: [GastosTable, Arn]
+            - '/index/*'
+  iamDynamoWrite: &iamDynamoWrite
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:BatchGetItem
+      - dynamodb:BatchWriteItem
+      - dynamodb:PutItem
+      - dynamodb:UpdateItem
+      - dynamodb:DeleteItem
+      - dynamodb:ConditionCheckItem
+      - dynamodb:DescribeTable
+    Resource:
+      - Fn::GetAtt: [GastosTable, Arn]
+      - Fn::Join:
+          - ''
+          - - Fn::GetAtt: [GastosTable, Arn]
+            - '/index/*'
+
+package:
+  individually: true
+
+functions:
+
+  # ===================== Gastos (CRUD) =====================
+  crearGasto:
+    handler: src/handlers/gastos/createGasto.handler
+    iamRoleStatements:
+      - *iamDynamoWrite
+    events:
+      - httpApi:
+          path: /gastos
+          method: post
+          authorizer:
+            name: cognitoJwt
+
+  listarGastos:
+    handler: src/handlers/gastos/listGastos.handler
+    iamRoleStatements:
+      - *iamDynamoRead
+    events:
+      - httpApi:
+          path: /gastos
+          method: get
+          authorizer:
+            name: cognitoJwt
+
+  obtenerGasto:
+    handler: src/handlers/gastos/getGasto.handler
+    iamRoleStatements:
+      - *iamDynamoRead
+    events:
+      - httpApi:
+          path: /gastos/{id}
+          method: get
+          authorizer:
+            name: cognitoJwt
+
+  eliminarGasto:
+    handler: src/handlers/gastos/deleteGasto.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:DeleteItem
+        Resource:
+          Fn::GetAtt: [GastosTable, Arn]
+    events:
+      - httpApi:
+          path: /gastos/{id}
+          method: delete
+          authorizer:
+            name: cognitoJwt
+
+  actualizarGasto:
+    handler: src/handlers/gastos/updateGasto.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource:
+          Fn::GetAtt: [GastosTable, Arn]
+    events:
+      - httpApi:
+          path: /gastos/{id}
+          method: patch
+          authorizer:
+            name: cognitoJwt
+
+  # ===================== Reglas / categorizacion =====================
+  crearRegla:
+    handler: src/handlers/reglas/createRegla.handler
+    iamRoleStatements:
+      - *iamDynamoWrite
+    events:
+      - httpApi:
+          path: /reglas
+          method: post
+          authorizer:
+            name: cognitoJwt
+
+  listarReglas:
+    handler: src/handlers/reglas/listReglas.handler
+    iamRoleStatements:
+      - *iamDynamoRead
+    events:
+      - httpApi:
+          path: /reglas
+          method: get
+          authorizer:
+            name: cognitoJwt
+
+  eliminarRegla:
+    handler: src/handlers/reglas/deleteRegla.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:DeleteItem
+        Resource:
+          Fn::GetAtt: [GastosTable, Arn]
+    events:
+      - httpApi:
+          path: /reglas/{id}
+          method: delete
+          authorizer:
+            name: cognitoJwt
+
+  sugerir:
+    handler: src/handlers/reglas/sugerir.handler
+    iamRoleStatements:
+      - *iamDynamoRead
+    events:
+      - httpApi:
+          path: /reglas/sugerir
+          method: post
+          authorizer:
+            name: cognitoJwt
+
+  # ===================== Resumen =====================
+  resumen:
+    handler: src/handlers/resumen/getResumen.handler
+    iamRoleStatements:
+      - *iamDynamoRead
+    events:
+      - httpApi:
+          path: /resumen
+          method: get
+          authorizer:
+            name: cognitoJwt
+
+  # ===================== Event-driven =====================
+  procesarStream:
+    handler: src/handlers/stream/procesarGastos.handler
+    environment:
+      ALERT_TOPIC_ARN:
+        Ref: AlertTopic
+      UMBRAL_ALERTA_MENSUAL: '100'
+    iamRoleStatements:
+      - *iamDynamoRead
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          Ref: AlertTopic
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [GastosTable, StreamArn]
+          startingPosition: LATEST
+          batchSize: 10
+
+  reporteMensual:
+    handler: src/handlers/scheduled/reporteMensual.handler
+    timeout: 30
+    environment:
+      ALERT_TOPIC_ARN:
+        Ref: AlertTopic
+    iamRoleStatements:
+      - *iamDynamoRead
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          Ref: AlertTopic
+    events:
+      # 1ro de cada mes, 08:00 America/Lima = 13:00 UTC (Peru es UTC-5 todo el ano)
+      - schedule:
+          rate: cron(0 13 1 * ? *)
+
+  importarGastos:
+    handler: src/handlers/sqs/importarGastos.handler
+    timeout: 30
+    iamRoleStatements:
+      - *iamDynamoWrite
+      - Effect: Allow
+        Action: s3:GetObject
+        Resource:
+          Fn::Join:
+            - ''
+            - - Fn::GetAtt: [ImportBucket, Arn]
+              - '/*'
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [ImportQueue, Arn]
+          batchSize: 1
+
+  presignImport:
+    handler: src/handlers/importacion/presignImport.handler
+    environment:
+      IMPORT_BUCKET:
+        Ref: ImportBucket
+    iamRoleStatements:
+      - Effect: Allow
+        Action: s3:PutObject
+        Resource:
+          Fn::Join:
+            - ''
+            - - Fn::GetAtt: [ImportBucket, Arn]
+              - '/imports/*'
+    events:
+      - httpApi:
+          path: /importaciones/url
+          method: get
+          authorizer:
+            name: cognitoJwt
+
+# ===================== Recursos CloudFormation (copiados del SAM, intrinsecos en forma larga) =====================
+resources:
+  Resources:
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: control-gastos-users
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: control-gastos-web
+        UserPoolId:
+          Ref: UserPool
+        GenerateSecret: false
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+
+    GastosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: control-gastos
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    AlertTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: control-gastos-alertas
+
+    AlertSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: email
+        Endpoint: ${self:custom.alertEmail}
+        TopicArn:
+          Ref: AlertTopic
+
+    ImportDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: control-gastos-import-dlq
+        MessageRetentionPeriod: 1209600
+
+    ImportQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: control-gastos-import
+        VisibilityTimeout: 180
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt: [ImportDLQ, Arn]
+          maxReceiveCount: 3
+
+    # Deja que S3 mande mensajes a la cola. Usa el ARN del bucket reconstruido
+    # (no Ref al bucket) para NO crear dependencia circular con ImportBucket.
+    ImportQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - Ref: ImportQueue
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: AllowS3SendMessage
+              Effect: Allow
+              Principal:
+                Service: s3.amazonaws.com
+              Action: sqs:SendMessage
+              Resource:
+                Fn::GetAtt: [ImportQueue, Arn]
+              Condition:
+                ArnEquals:
+                  aws:SourceArn:
+                    Fn::Join:
+                      - ''
+                      - - 'arn:aws:s3:::control-gastos-imports-'
+                        - Ref: AWS::AccountId
+
+    ImportBucket:
+      Type: AWS::S3::Bucket
+      DependsOn: ImportQueuePolicy
+      Properties:
+        BucketName:
+          Fn::Join:
+            - ''
+            - - 'control-gastos-imports-'
+              - Ref: AWS::AccountId
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods: [PUT]
+              AllowedOrigins:
+                - http://localhost:4200
+              AllowedHeaders: ['*']
+              ExposedHeaders: [ETag]
+              MaxAge: 3000
+        NotificationConfiguration:
+          QueueConfigurations:
+            - Event: s3:ObjectCreated:*
+              Queue:
+                Fn::GetAtt: [ImportQueue, Arn]
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: suffix
+                      Value: .csv
+
+  Outputs:
+    UserPoolId:
+      Description: ID del User Pool de Cognito
+      Value:
+        Ref: UserPool
+    UserPoolClientId:
+      Description: ID del App Client (para login y obtener token)
+      Value:
+        Ref: UserPoolClient
+    ImportBucketName:
+      Description: Bucket donde subir los CSV (imports/<userId>/archivo.csv)
+      Value:
+        Ref: ImportBucket
