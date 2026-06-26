@@ -508,6 +508,14 @@ Resources:
     Type: AWS::S3::Bucket
     DependsOn: ImportQueuePolicy
     Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [ PUT ]
+            AllowedOrigins:
+              - http://localhost:4200
+            AllowedHeaders: [ '*' ]
+            ExposedHeaders: [ ETag ]
+            MaxAge: 3000
       BucketName: !Sub 'control-gastos-imports-${AWS::AccountId}'
       NotificationConfiguration:
         QueueConfigurations:
@@ -545,6 +553,36 @@ Resources:
         Target: es2022
         EntryPoints:
           - src/handlers/sqs/importarGastos.ts
+
+  PresignImportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: control-gastos-presign-import
+      CodeUri: .
+      Handler: presignImport.handler
+      Environment:
+        Variables:
+          IMPORT_BUCKET: !Sub 'control-gastos-imports-${AWS::AccountId}'
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub 'arn:aws:s3:::control-gastos-imports-${AWS::AccountId}/imports/*'
+      Events:
+        GetUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref GastosHttpApi
+            Path: /importaciones/url
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Sourcemap: true
+        Target: es2022
+        EntryPoints:
+          - src/handlers/importacion/presignImport.ts
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API

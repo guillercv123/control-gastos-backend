@@ -3,8 +3,9 @@ export interface AppConfig {
   stage: string;
   region: string;
   tableName: string;
-  alertTopicArn: string;          // <- nuevo
-  umbralAlertaMensual: number;    // <- nuevo
+  alertTopicArn: string;
+  umbralAlertaMensual: number;
+  importBucket: string;
 }
 
 export const config: AppConfig = {
@@ -12,6 +13,7 @@ export const config: AppConfig = {
   stage: process.env.STAGE ?? 'dev',
   region: process.env.AWS_REGION ?? 'us-east-1',
   tableName: process.env.TABLE_NAME ?? '',
-  alertTopicArn: process.env.ALERT_TOPIC_ARN ?? '',                         // <- nuevo
-  umbralAlertaMensual: Number(process.env.UMBRAL_ALERTA_MENSUAL ?? '100'),  // <- nuevo
+  alertTopicArn: process.env.ALERT_TOPIC_ARN ?? '',
+  umbralAlertaMensual: Number(process.env.UMBRAL_ALERTA_MENSUAL ?? '100'),
+  importBucket: process.env.IMPORT_BUCKET ?? '',
 };
