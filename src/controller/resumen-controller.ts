@@ -5,11 +5,9 @@ import type {
 
 import {
     ok,
-    badRequest,
-    serverError,
+    badRequest
 } from '../lib/httpResponse';
 
-import { logger } from '../lib/logger';
 import { getUserId } from '../lib/identity';
 
 const MES_RE = /^\d{4}-\d{2}$/;
@@ -22,18 +20,12 @@ export class ResumenController {
     async obtenerResument(
         event: APIGatewayProxyEventV2WithJWTAuthorizer,
     ): Promise<APIGatewayProxyStructuredResultV2> {
-        try {
             const userId = getUserId(event);
             const mes = event.queryStringParameters?.mes ?? mesActual();
             if (!MES_RE.test(mes)) return badRequest('mes debe tener formato YYYY-MM');
             const resumen = await resumenService.generar(userId, mes);
             return ok(resumen);
-        } catch (err) {
-            logger.error('error al generar resumen', { error: String(err) });
-            return serverError();
-        }
     }
-
 }
 
 export const resumenController =

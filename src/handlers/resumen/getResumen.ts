@@ -1,11 +1,4 @@
-import type {
-  APIGatewayProxyEventV2WithJWTAuthorizer,
-  APIGatewayProxyStructuredResultV2,
-} from 'aws-lambda';
+import { withMiddleware } from '../../lib/middleware';
 import {resumenController} from "../../controller/resumen-controller";
 
-export const handler = (
-    event: APIGatewayProxyEventV2WithJWTAuthorizer,
-): Promise<APIGatewayProxyStructuredResultV2> => {
-  return resumenController.obtenerResument(event);
-};
+export const handler = withMiddleware((event) => resumenController.obtenerResument(event));

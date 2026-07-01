@@ -3,7 +3,9 @@
   "version": "0.3.0",
   "description": "Backend Node.js + TypeScript sobre AWS (Serverless Framework)",
   "license": "MIT",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "package": "serverless package",
@@ -12,20 +14,22 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.620.0",
-    "@aws-sdk/lib-dynamodb": "^3.620.0",
-    "@aws-sdk/util-dynamodb": "^3.620.0",
-    "@aws-sdk/client-sns": "^3.620.0",
     "@aws-sdk/client-s3": "^3.620.0",
+    "@aws-sdk/client-sns": "^3.620.0",
+    "@aws-sdk/lib-dynamodb": "^3.620.0",
     "@aws-sdk/s3-request-presigner": "^3.620.0",
+    "@aws-sdk/util-dynamodb": "^3.620.0",
+    "@middy/core": "^6.4.5",
+    "@middy/http-json-body-parser": "^6.4.5",
     "ulid": "^2.3.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.137",
     "@types/node": "^20.12.7",
-    "typescript": "^5.4.5",
     "esbuild": "^0.20.2",
     "serverless": "^3.40.0",
     "serverless-esbuild": "^1.52.1",
-    "serverless-iam-roles-per-function": "^3.2.0"
+    "serverless-iam-roles-per-function": "^3.2.0",
+    "typescript": "^5.4.5"
   }
 }
