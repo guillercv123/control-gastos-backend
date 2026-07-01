@@ -21,6 +21,7 @@
     "@aws-sdk/util-dynamodb": "^3.620.0",
     "@middy/core": "^6.4.5",
     "@middy/http-json-body-parser": "^6.4.5",
+    "@middy/validator": "^6.4.5",
     "ulid": "^2.3.0"
   },
   "devDependencies": {

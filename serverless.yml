@@ -59,7 +59,6 @@ custom:
     external:
       - '@aws-sdk/*'
 
-  # --- Anclas reutilizables de permisos DynamoDB (equivalen a DynamoDB(Read|Write)Policy de SAM) ---
   iamDynamoRead: &iamDynamoRead
     Effect: Allow
     Action:
