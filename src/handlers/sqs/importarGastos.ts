@@ -1,17 +1,6 @@
 import type { SQSEvent, SQSRecord } from 'aws-lambda';
-import { logger } from '../../lib/logger';
 import { importacionService } from '../../services/importacion-service';
-
-export const handler = async (event: SQSEvent): Promise<void> => {
-  for (const record of event.Records) {
-    try {
-      await procesarMensaje(record);
-    } catch (err) {
-      logger.error('error importando archivo desde la cola', { error: String(err) });
-      throw err;
-    }
-  }
-};
+import { withErrorLogging } from '../../lib/middleware';
 
 const procesarMensaje = async (record: SQSRecord): Promise<void> => {
   const evento = JSON.parse(record.body);
@@ -23,3 +12,9 @@ const procesarMensaje = async (record: SQSRecord): Promise<void> => {
     await importacionService.procesarArchivo(bucket, key);
   }
 };
+
+export const handler = withErrorLogging(async (event: SQSEvent) => {
+  for (const record of event.Records) {
+    await procesarMensaje(record);
+  }
+});
