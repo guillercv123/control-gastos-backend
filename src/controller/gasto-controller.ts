@@ -54,7 +54,7 @@ export class GastoController {
             const userId = getUserId(event);
             const id = event.pathParameters?.id;
             if (!id) return badRequest('Falta el id del gasto');
-            const data = parseActualizarGasto(event.body ?? '{}');
+            const data = parseActualizarGasto(event.body);
             const gastoUpdated = await gastoService.actualizar(userId, id, data);
             return ok({ gastoUpdated });
     }
